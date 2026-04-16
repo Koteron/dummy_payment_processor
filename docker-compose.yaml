@@ -1,0 +1,62 @@
+services:
+  postgres:
+    image: postgres:18
+    container_name: payments_postgres
+    environment:
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_DB: ${DB_NAME}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  rabbitmq:
+    build: ./docker/rabbitmq
+    container_name: payments-rabbitmq
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD}
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    command: >
+      bash -c "rabbitmq-plugins enable rabbitmq_delayed_message_exchange &&
+               rabbitmq-server"
+
+  api:
+    build: .
+    container_name: payments-api
+    env_file:
+      - .env
+    ports:
+      - "8000:8000"
+    depends_on:
+      - postgres
+    command: sh -c "uv run --active alembic upgrade head &&
+     uv run --active uvicorn app.app:app --host 0.0.0.0 --port 8000"
+
+  outbox-worker:
+    build: .
+    container_name: payments-worker
+    env_file:
+      - .env
+    depends_on:
+      - postgres
+      - rabbitmq
+      - api
+    command: uv run --active python -m app.outbox_worker
+
+  consumer:
+    build: .
+    container_name: payments-consumer
+    env_file:
+      - .env
+    depends_on:
+      - postgres
+      - rabbitmq
+      - api
+    command: uv run --active python -m app.consumer
+
+volumes:
+  postgres_data:

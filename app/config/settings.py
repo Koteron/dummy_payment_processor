@@ -6,7 +6,7 @@ from typing_extensions import Self
 
 class Settings(BaseSettings):
 
-    API_SECRET: str
+    API_SECRET: str = "secret"
 
     DB_USER: str = "user"
     DB_PASSWORD: str = "password"
@@ -23,10 +23,20 @@ class Settings(BaseSettings):
     DATABASE_URL: Optional[str] = None
 
     LOG_LEVEL: str = "INFO"
-    BACKGROUND_SLEEP_TIME: float = 1.0
-    BACKGROUND_BATCH_SIZE: int = 50
-    DO_BACKGROUND_CHECKING_LOG: bool = True
-    DO_BACKGROUND_WORKER_AMOUNT: int = 2
+
+    OUTBOX_WORKER_QUERY_SLEEP_TIME: float = 1.0
+    OUTBOX_WORKER_STARTUP_SLEEP_TIME: float = 5.0
+    OUTBOX_WORKER_BATCH_SIZE: int = 50
+    OUTBOX_WORKER_DO_CHECKING_LOG: bool = True
+    OUTBOX_WORKER_WORKER_AMOUNT: int = 1
+    
+    CONSUMER_MAX_EVENT_RETRIES: int = 2
+    CONSUMER_MIN_PROCESS_TIME: float = 2.0
+    CONSUMER_MAX_PROCESS_TIME: float = 5.0
+    CONSUMER_SUCCESS_PROBABILITY: float = 0.9
+    CONSUMER_DELAY_EXP_BASE: int = 5
+
+    CONNECTION_RETRIES: int = 10
 
     @model_validator(mode="after")
     def assemble_urls(self) -> Self:
